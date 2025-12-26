@@ -2,6 +2,7 @@ package com.example.myplayer.data.repository
 
 import com.example.myplayer.data.local.source.MediaStoreSource
 import com.example.myplayer.domain.model.Audio
+import com.example.myplayer.domain.model.Folder
 import com.example.myplayer.domain.model.Video
 import com.example.myplayer.domain.repository.MediaRepository
 import kotlinx.coroutines.flow.Flow
@@ -18,5 +19,21 @@ class MediaRepositoryImpl @Inject constructor(
 
     override fun getVideo(): Flow<List<Video>> = flow {
         emit(mediaStoreSource.getVideo())
+    }
+
+    override fun getAudioFolders(): Flow<List<Folder<Audio>>> = flow {
+        val audio = mediaStoreSource.getAudio()
+        val folders = audio.groupBy { it.folderName }.map { (name, media) ->
+            Folder(name, media)
+        }
+        emit(folders)
+    }
+
+    override fun getVideoFolders(): Flow<List<Folder<Video>>> = flow {
+        val video = mediaStoreSource.getVideo()
+        val folders = video.groupBy { it.folderName }.map { (name, media) ->
+            Folder(name, media)
+        }
+        emit(folders)
     }
 }

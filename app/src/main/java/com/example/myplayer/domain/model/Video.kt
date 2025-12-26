@@ -5,5 +5,6 @@ data class Video(
     val uri: String,
     val displayName: String,
     val duration: Int,
-    val size: Int
+    val size: Int,
+    val folderName: String
 )

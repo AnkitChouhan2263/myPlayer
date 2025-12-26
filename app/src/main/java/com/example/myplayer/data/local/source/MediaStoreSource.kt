@@ -22,7 +22,8 @@ class MediaStoreSource @Inject constructor(
             MediaStore.Audio.Media.ARTIST,
             MediaStore.Audio.Media.DURATION,
             MediaStore.Audio.Media.SIZE,
-            MediaStore.Audio.Media.ALBUM_ID
+            MediaStore.Audio.Media.ALBUM_ID,
+            MediaStore.Audio.Media.BUCKET_DISPLAY_NAME
         )
         val selection = "${MediaStore.Audio.Media.IS_MUSIC} != 0"
 
@@ -39,6 +40,7 @@ class MediaStoreSource @Inject constructor(
             val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
             val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE)
             val albumIdColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID)
+            val folderNameColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.BUCKET_DISPLAY_NAME)
 
             while (cursor.moveToNext()) {
                 val id = cursor.getLong(idColumn)
@@ -48,6 +50,7 @@ class MediaStoreSource @Inject constructor(
                 val duration = cursor.getInt(durationColumn)
                 val size = cursor.getInt(sizeColumn)
                 val albumId = cursor.getLong(albumIdColumn)
+                val folderName = cursor.getString(folderNameColumn)
 
                 audioList.add(
                     Audio(
@@ -57,7 +60,8 @@ class MediaStoreSource @Inject constructor(
                         artist = artist,
                         duration = duration,
                         size = size,
-                        albumId = albumId
+                        albumId = albumId,
+                        folderName = folderName
                     )
                 )
             }
@@ -72,7 +76,8 @@ class MediaStoreSource @Inject constructor(
             MediaStore.Video.Media._ID,
             MediaStore.Video.Media.DISPLAY_NAME,
             MediaStore.Video.Media.DURATION,
-            MediaStore.Video.Media.SIZE
+            MediaStore.Video.Media.SIZE,
+            MediaStore.Video.Media.BUCKET_DISPLAY_NAME
         )
 
         contentResolver.query(
@@ -86,6 +91,7 @@ class MediaStoreSource @Inject constructor(
             val displayNameColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)
             val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DURATION)
             val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.SIZE)
+            val folderNameColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.BUCKET_DISPLAY_NAME)
 
             while (cursor.moveToNext()) {
                 val id = cursor.getLong(idColumn)
@@ -93,6 +99,7 @@ class MediaStoreSource @Inject constructor(
                 val displayName = cursor.getString(displayNameColumn)
                 val duration = cursor.getInt(durationColumn)
                 val size = cursor.getInt(sizeColumn)
+                val folderName = cursor.getString(folderNameColumn)
 
                 videoList.add(
                     Video(
@@ -100,7 +107,8 @@ class MediaStoreSource @Inject constructor(
                         uri = uri.toString(),
                         displayName = displayName,
                         duration = duration,
-                        size = size
+                        size = size,
+                        folderName = folderName
                     )
                 )
             }

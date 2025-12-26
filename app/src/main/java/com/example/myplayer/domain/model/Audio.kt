@@ -7,5 +7,6 @@ data class Audio(
     val artist: String,
     val duration: Int,
     val size: Int,
-    val albumId: Long?
+    val albumId: Long?,
+    val folderName: String
 )
