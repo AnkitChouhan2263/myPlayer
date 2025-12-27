@@ -34,7 +34,7 @@ fun AudioFoldersScreen(
         LazyColumn(modifier = Modifier.fillMaxSize()) {
             items(uiState.audioFolders) { folder ->
                 Column(modifier = Modifier.clickable { 
-                    navController.navigate("media_list/${folder.name}") 
+                    navController.navigate("media_list/${folder.name}/audio") 
                 }) {
                     Text(text = folder.name)
                     Text(text = "${folder.media.size} songs")

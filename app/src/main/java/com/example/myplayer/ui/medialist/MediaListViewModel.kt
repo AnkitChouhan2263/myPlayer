@@ -11,11 +11,11 @@ import kotlinx.coroutines.flow.*
 import javax.inject.Inject
 
 data class MediaListUiState(
-    val audio: List<Audio> = emptyList(),
-    val video: List<Video> = emptyList(),
+    val media: List<Any> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
-    val folderName: String? = null
+    val folderName: String? = null,
+    val mediaType: String? = null
 )
 
 @HiltViewModel
@@ -28,20 +28,25 @@ class MediaListViewModel @Inject constructor(
     val uiState: StateFlow<MediaListUiState> = _uiState.asStateFlow()
 
     init {
-        savedStateHandle.get<String>("folderName")?.let {
-            _uiState.value = _uiState.value.copy(folderName = it)
-            loadMedia(it)
+        val folderName = savedStateHandle.get<String>("folderName")
+        val mediaType = savedStateHandle.get<String>("mediaType")
+        if (folderName != null && mediaType != null) {
+            _uiState.value = _uiState.value.copy(folderName = folderName, mediaType = mediaType)
+            loadMedia(folderName, mediaType)
         }
     }
 
-    private fun loadMedia(folderName: String) {
+    private fun loadMedia(folderName: String, mediaType: String) {
         _uiState.value = _uiState.value.copy(isLoading = true)
 
-        val audioFlow = mediaRepository.getAudio().map { it.filter { audio -> audio.folderName == folderName } }
-        val videoFlow = mediaRepository.getVideo().map { it.filter { video -> video.folderName == folderName } }
+        val mediaFlow: Flow<List<Any>> = when (mediaType) {
+            "audio" -> mediaRepository.getAudio().map { list -> list.filter { it.folderName == folderName } }
+            "video" -> mediaRepository.getVideo().map { list -> list.filter { it.folderName == folderName } }
+            else -> flowOf(emptyList())
+        }
 
-        combine(audioFlow, videoFlow) { audio, video ->
-            _uiState.value = _uiState.value.copy(audio = audio, video = video, isLoading = false)
+        mediaFlow.onEach { media ->
+            _uiState.value = _uiState.value.copy(media = media, isLoading = false)
         }.catch { e ->
             _uiState.value = _uiState.value.copy(error = e.message, isLoading = false)
         }.launchIn(viewModelScope)

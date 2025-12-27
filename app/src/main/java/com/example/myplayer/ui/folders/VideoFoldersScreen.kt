@@ -34,7 +34,7 @@ fun VideoFoldersScreen(
         LazyColumn(modifier = Modifier.fillMaxSize()) {
             items(uiState.videoFolders) { folder ->
                 Column(modifier = Modifier.clickable { 
-                    navController.navigate("media_list/${folder.name}") 
+                    navController.navigate("media_list/${folder.name}/video") 
                 }) {
                     Text(text = folder.name)
                     Text(text = "${folder.media.size} videos")
