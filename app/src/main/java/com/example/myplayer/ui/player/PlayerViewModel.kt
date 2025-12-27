@@ -1,10 +1,12 @@
 package com.example.myplayer.ui.player
 
 import android.net.Uri
+import android.os.Bundle
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import com.example.myplayer.domain.model.Audio
@@ -64,7 +66,19 @@ class PlayerViewModel @Inject constructor(
                 }
 
                 mediaFlow.collectLatest {
-                    _uiState.value = _uiState.value.copy(playlist = it, currentMediaIndex = startIndex)
+                    _uiState.value = _uiState.value.copy(playlist = it)
+
+                    val clickedMediaUri = when (val media = it.getOrNull(startIndex)) {
+                        is Audio -> media.uri
+                        is Video -> media.uri
+                        else -> null
+                    }
+
+                    // If the clicked song is the same as the one already playing, do nothing.
+                    if (player.currentMediaItem?.mediaId == clickedMediaUri) {
+                        return@collectLatest
+                    }
+
                     prepareAndPlay(it, startIndex)
                 }
             }
@@ -80,14 +94,31 @@ class PlayerViewModel @Inject constructor(
 
         player.stop()
         player.clearMediaItems()
+        _uiState.value = _uiState.value.copy(currentPosition = 0, totalDuration = 0)
 
-        val mediaItems = playlist.map {
-            val uri = when (it) {
-                is Audio -> it.uri
-                is Video -> it.uri
-                else -> ""
+        val mediaItems = playlist.map { media ->
+            val uri: Uri
+            val metadata: MediaMetadata
+
+            when (media) {
+                is Audio -> {
+                    uri = Uri.parse(media.uri)
+                    metadata = MediaMetadata.Builder()
+                        .setTitle(media.displayName)
+                        .setArtist(media.artist)
+                        .setExtras(Bundle().apply { putString("mediaType", "audio") })
+                        .build()
+                }
+                is Video -> {
+                    uri = Uri.parse(media.uri)
+                    metadata = MediaMetadata.Builder()
+                        .setTitle(media.displayName)
+                        .setExtras(Bundle().apply { putString("mediaType", "video") })
+                        .build()
+                }
+                else -> return@map MediaItem.EMPTY
             }
-            MediaItem.fromUri(Uri.decode(uri))
+            MediaItem.Builder().setUri(uri).setMediaMetadata(metadata).build()
         }
 
         player.setMediaItems(mediaItems, startIndex, 0)
@@ -95,7 +126,6 @@ class PlayerViewModel @Inject constructor(
         player.play()
     }
 
-    // Player.Listener Overrides
     override fun onIsPlayingChanged(isPlaying: Boolean) {
         _uiState.value = _uiState.value.copy(isPlaying = isPlaying)
     }
@@ -113,7 +143,6 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    // ViewModel Actions
     fun onNext() {
         if (player.hasNextMediaItem()) {
             player.seekToNextMediaItem()
@@ -147,7 +176,6 @@ class PlayerViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         player.removeListener(this)
-        // player.stop() // This was stopping the music!
     }
 }
 

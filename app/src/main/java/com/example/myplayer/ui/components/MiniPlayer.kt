@@ -5,11 +5,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -17,40 +15,60 @@ import com.example.myplayer.media.MusicServiceConnection
 
 @Composable
 fun MiniPlayer(musicServiceConnection: MusicServiceConnection) {
+    val playbackState by musicServiceConnection.playbackState.collectAsState()
     val controller = musicServiceConnection.mediaController
 
-    if (controller != null && controller.currentMediaItem != null) {
-        val mediaMetadata = controller.currentMediaItem?.mediaMetadata
+    if (playbackState.mediaItem == null) return
 
-        Column {
-            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Album art placeholder
-                Spacer(modifier = Modifier.width(16.dp))
+    val mediaMetadata = playbackState.mediaItem?.mediaMetadata
+    var sliderPosition by remember { mutableFloatStateOf(0f) }
+    var isDragging by remember { mutableStateOf(false) }
 
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(text = mediaMetadata?.title?.toString() ?: "")
-                    Text(text = mediaMetadata?.artist?.toString() ?: "")
+    LaunchedEffect(playbackState.currentPosition, isDragging) {
+        if (!isDragging) {
+            sliderPosition = playbackState.currentPosition.toFloat()
+        }
+    }
+
+    val totalDuration = (playbackState.totalDuration.takeIf { it > 0 } ?: 0L).toFloat()
+
+    Column {
+        Slider(
+            value = sliderPosition,
+            onValueChange = { 
+                isDragging = true
+                sliderPosition = it 
+            },
+            onValueChangeFinished = {
+                isDragging = false
+                controller?.seekTo(sliderPosition.toLong())
+            },
+            valueRange = 0f..totalDuration,
+            modifier = Modifier.fillMaxWidth().height(8.dp)
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Spacer(modifier = Modifier.size(48.dp))
+
+            Column(modifier = Modifier.weight(1f).padding(horizontal = 16.dp)) {
+                Text(text = mediaMetadata?.title?.toString() ?: "", maxLines = 1)
+                Text(text = mediaMetadata?.artist?.toString() ?: "", maxLines = 1)
+            }
+
+            Row {
+                IconButton(onClick = { controller?.seekToPrevious() }) {
+                    Icon(Icons.Default.SkipPrevious, contentDescription = "Previous")
                 }
-
-                Row {
-                    IconButton(onClick = { controller.seekToPrevious() }) {
-                        Icon(Icons.Default.SkipNext, contentDescription = "Previous")
-                    }
-                    IconButton(onClick = { if (controller.isPlaying) controller.pause() else controller.play() }) {
-                        Icon(
-                            imageVector = if (controller.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                            contentDescription = "Play/Pause"
-                        )
-                    }
-                    IconButton(onClick = { controller.seekToNext() }) {
-                        Icon(Icons.Default.SkipNext, contentDescription = "Next")
-                    }
+                IconButton(onClick = { if (playbackState.isPlaying) controller?.pause() else controller?.play() }) {
+                    Icon(
+                        imageVector = if (playbackState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = "Play/Pause"
+                    )
+                }
+                IconButton(onClick = { controller?.seekToNext() }) {
+                    Icon(Icons.Default.SkipNext, contentDescription = "Next")
                 }
             }
         }

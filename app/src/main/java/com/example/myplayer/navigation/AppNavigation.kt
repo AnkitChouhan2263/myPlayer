@@ -4,10 +4,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.myplayer.media.MusicServiceConnection
@@ -23,19 +25,24 @@ import com.example.myplayer.ui.settings.SettingsScreen
 @Composable
 fun AppNavigation(musicServiceConnection: MusicServiceConnection) {
     val navController = rememberNavController()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+
     Scaffold(
         bottomBar = {
-            Column {
-                MiniPlayer(musicServiceConnection)
-                BottomNavigationBar(
-                    navController = navController,
-                    items = listOf(
-                        BottomNavItem.Home,
-                        BottomNavItem.Music,
-                        BottomNavItem.Videos,
-                        BottomNavItem.Settings
+            if (currentRoute != "player/{mediaType}/{folderName}/{startIndex}") {
+                Column {
+                    MiniPlayer(musicServiceConnection)
+                    BottomNavigationBar(
+                        navController = navController,
+                        items = listOf(
+                            BottomNavItem.Home,
+                            BottomNavItem.Music,
+                            BottomNavItem.Videos,
+                            BottomNavItem.Settings
+                        )
                     )
-                )
+                }
             }
         }
     ) { innerPadding ->

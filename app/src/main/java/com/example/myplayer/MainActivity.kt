@@ -28,8 +28,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
-        val player = musicServiceConnection.mediaController
-        if (player != null && player.isPlaying) {
+        val playbackState = musicServiceConnection.playbackState.value
+        val mediaItem = playbackState.mediaItem
+        val isVideo = mediaItem?.mediaMetadata?.extras?.getString("mediaType") == "video"
+
+        if (playbackState.isPlaying && isVideo) {
             val aspectRatio = Rational(16, 9)
             val pipParams = PictureInPictureParams.Builder()
                 .setAspectRatio(aspectRatio)

@@ -13,10 +13,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
@@ -90,6 +87,18 @@ fun AudioPlayer(
     uiState: PlayerUiState,
     actions: PlayerActions
 ) {
+    var sliderPosition by remember { mutableFloatStateOf(0f) }
+    var isDragging by remember { mutableStateOf(false) }
+
+    // Update slider position based on playback state, but only when not being dragged.
+    LaunchedEffect(uiState.currentPosition, isDragging) {
+        if (!isDragging) {
+            sliderPosition = uiState.currentPosition.toFloat()
+        }
+    }
+
+    val totalDuration = (uiState.totalDuration.takeIf { it > 0 } ?: 0L).toFloat()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -121,9 +130,16 @@ fun AudioPlayer(
         Spacer(modifier = Modifier.height(16.dp))
 
         Slider(
-            value = uiState.currentPosition.toFloat(),
-            onValueChange = { actions.onSeek(it.toLong()) },
-            valueRange = 0f..uiState.totalDuration.toFloat(),
+            value = sliderPosition,
+            onValueChange = { 
+                isDragging = true
+                sliderPosition = it 
+            },
+            onValueChangeFinished = {
+                isDragging = false
+                actions.onSeek(sliderPosition.toLong())
+            },
+            valueRange = 0f..totalDuration,
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -131,7 +147,7 @@ fun AudioPlayer(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(text = uiState.currentPosition.toFormattedTimeString())
+            Text(text = sliderPosition.toLong().toFormattedTimeString())
             Text(text = uiState.totalDuration.toFormattedTimeString())
         }
 
