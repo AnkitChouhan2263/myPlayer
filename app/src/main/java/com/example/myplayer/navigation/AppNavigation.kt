@@ -32,7 +32,7 @@ fun AppNavigation(musicServiceConnection: MusicServiceConnection) {
         bottomBar = {
             if (currentRoute != "player/{mediaType}/{folderName}/{startIndex}") {
                 Column {
-                    MiniPlayer(musicServiceConnection)
+                    MiniPlayer(navController, musicServiceConnection)
                     BottomNavigationBar(
                         navController = navController,
                         items = listOf(

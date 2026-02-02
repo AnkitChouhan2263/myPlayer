@@ -16,6 +16,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
 import javax.inject.Inject
 
 data class PlayerUiState(
@@ -53,33 +55,44 @@ class PlayerViewModel @Inject constructor(
         player.addListener(this)
         viewModelScope.launch {
             val mediaType = savedStateHandle.get<String>("mediaType")
-            val folderName = savedStateHandle.get<String>("folderName")
-            val startIndex = savedStateHandle.get<Int>("startIndex")
+            val folderNameEncoded = savedStateHandle.get<String>("folderName")
+            val startIndex = savedStateHandle.get<Int>("startIndex") ?: -1
             
             _uiState.value = _uiState.value.copy(mediaType = mediaType)
 
-            if (mediaType != null && folderName != null && startIndex != null) {
+            if (mediaType != null && folderNameEncoded != null && startIndex != -1) {
+                val folderName = URLDecoder.decode(folderNameEncoded, StandardCharsets.UTF_8.toString())
+
                 val mediaFlow: Flow<List<Any>> = when (mediaType) {
                     "audio" -> mediaRepository.getAudio().map { list -> list.filter { it.folderName == folderName } }
                     "video" -> mediaRepository.getVideo().map { list -> list.filter { it.folderName == folderName } }
                     else -> flowOf(emptyList())
                 }
 
-                mediaFlow.collectLatest {
-                    _uiState.value = _uiState.value.copy(playlist = it)
+                mediaFlow.collectLatest { playlist ->
+                    _uiState.value = _uiState.value.copy(playlist = playlist, currentMediaIndex = startIndex)
 
-                    val clickedMediaUri = when (val media = it.getOrNull(startIndex)) {
-                        is Audio -> media.uri
-                        is Video -> media.uri
+                    val targetMedia = playlist.getOrNull(startIndex)
+                    val targetUri = when (targetMedia) {
+                        is Audio -> targetMedia.uri
+                        is Video -> targetMedia.uri
                         else -> null
                     }
 
-                    // If the clicked song is the same as the one already playing, do nothing.
-                    if (player.currentMediaItem?.mediaId == clickedMediaUri) {
-                        return@collectLatest
-                    }
+                    val isAlreadyPlayingThis = player.playbackState != Player.STATE_IDLE && player.currentMediaItem?.mediaId == targetUri
 
-                    prepareAndPlay(it, startIndex)
+                    if (isAlreadyPlayingThis) {
+                        // The correct song is already playing. Just sync the UI state.
+                        _uiState.value = _uiState.value.copy(
+                            isPlaying = player.isPlaying,
+                            currentPosition = player.currentPosition,
+                            totalDuration = player.duration,
+                            currentMediaItem = player.currentMediaItem
+                        )
+                    } else {
+                        // A new song or playlist has been selected. Prepare and play it.
+                        prepareAndPlay(playlist, startIndex, mediaType, folderName)
+                    }
                 }
             }
 
@@ -89,7 +102,7 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    private fun prepareAndPlay(playlist: List<Any>, startIndex: Int) {
+    private fun prepareAndPlay(playlist: List<Any>, startIndex: Int, mediaType: String, folderName: String) {
         if (playlist.isEmpty()) return
 
         player.stop()
@@ -106,19 +119,29 @@ class PlayerViewModel @Inject constructor(
                     metadata = MediaMetadata.Builder()
                         .setTitle(media.displayName)
                         .setArtist(media.artist)
-                        .setExtras(Bundle().apply { putString("mediaType", "audio") })
+                        .setExtras(Bundle().apply { 
+                            putString("mediaType", "audio")
+                            putString("folderName", folderName)
+                         })
                         .build()
                 }
                 is Video -> {
                     uri = Uri.parse(media.uri)
                     metadata = MediaMetadata.Builder()
                         .setTitle(media.displayName)
-                        .setExtras(Bundle().apply { putString("mediaType", "video") })
+                        .setExtras(Bundle().apply { 
+                            putString("mediaType", "video")
+                            putString("folderName", folderName)
+                        })
                         .build()
                 }
                 else -> return@map MediaItem.EMPTY
             }
-            MediaItem.Builder().setUri(uri).setMediaMetadata(metadata).build()
+            MediaItem.Builder()
+                .setMediaId(uri.toString())
+                .setUri(uri)
+                .setMediaMetadata(metadata)
+                .build()
         }
 
         player.setMediaItems(mediaItems, startIndex, 0)

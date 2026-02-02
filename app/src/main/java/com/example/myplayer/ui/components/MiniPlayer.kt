@@ -1,5 +1,6 @@
 package com.example.myplayer.ui.components
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Pause
@@ -11,10 +12,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.example.myplayer.media.MusicServiceConnection
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 @Composable
-fun MiniPlayer(musicServiceConnection: MusicServiceConnection) {
+fun MiniPlayer(navController: NavController, musicServiceConnection: MusicServiceConnection) {
     val playbackState by musicServiceConnection.playbackState.collectAsState()
     val controller = musicServiceConnection.mediaController
 
@@ -32,7 +36,17 @@ fun MiniPlayer(musicServiceConnection: MusicServiceConnection) {
 
     val totalDuration = (playbackState.totalDuration.takeIf { it > 0 } ?: 0L).toFloat()
 
-    Column {
+    Column(
+        modifier = Modifier.clickable {
+            val mediaType = mediaMetadata?.extras?.getString("mediaType")
+            val folderName = mediaMetadata?.extras?.getString("folderName")
+            val startIndex = playbackState.currentMediaIndex
+            if (mediaType != null && folderName != null) {
+                val encodedFolderName = URLEncoder.encode(folderName, StandardCharsets.UTF_8.toString())
+                navController.navigate("player/$mediaType/$encodedFolderName/$startIndex")
+            }
+        }
+    ) {
         Slider(
             value = sliderPosition,
             onValueChange = { 

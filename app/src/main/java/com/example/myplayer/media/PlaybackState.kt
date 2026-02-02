@@ -6,5 +6,6 @@ data class PlaybackState(
     val mediaItem: MediaItem? = null,
     val isPlaying: Boolean = false,
     val currentPosition: Long = 0,
-    val totalDuration: Long = 0
+    val totalDuration: Long = 0,
+    val currentMediaIndex: Int = 0
 )

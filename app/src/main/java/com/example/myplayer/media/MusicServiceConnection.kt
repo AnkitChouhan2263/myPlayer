@@ -47,7 +47,11 @@ class MusicServiceConnection @Inject constructor(
         val controller = mediaController ?: return
         controller.addListener(object : Player.Listener {
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-                _playbackState.value = _playbackState.value.copy(mediaItem = mediaItem)
+                _playbackState.value = _playbackState.value.copy(
+                    mediaItem = mediaItem, 
+                    totalDuration = controller.duration,
+                    currentMediaIndex = controller.currentMediaItemIndex
+                )
             }
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
